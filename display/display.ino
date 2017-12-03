@@ -2,6 +2,7 @@
 DREAM MACHINE ALARM CLOCK
 Display Code - runs a 7 segment display using multiple sliders as alarm inputs
 Latest edit: 11/28/17
+Photon ID: 3d003a001051353338363333
 */
 
 // ======================== LIBS ==============================
@@ -52,8 +53,8 @@ char sleepQuality=0;
 
 bool blinkColon = false;
 
-int slider1 = A0;
-int slider2 = A1;
+int slider1 = A0; // earliest hour
+int slider2 = A1; // earliest minute
 int slider3 = A2;
 int slider4 = A3;
 
@@ -61,10 +62,10 @@ int slider4 = A3;
 #define slider2 A1
 #define slider3 A2
 #define slider4 A3
-#define sliderAlarm A4
+#define sliderAlarm A4 // on / off
 #define inSnooze A5
 #define ampmEarly D3        //am or pm selection alarms
-#define ampmLate D4
+#define ampmLate D2
 
 int valSlider1 = 0, pastValSlider1 = 0;      //value slider and past value slider variables
 int valSlider2 = 0, pastValSlider2 = 0;
@@ -92,7 +93,13 @@ int AAvgSong = 0, avgSong = 0, BAvgSong = 0;
 int sleepDuration = 0, sleepCycles = 0;
 int avgAccelMovement = 0;
 bool awakeOrREMWillLikelyOccurBeforeLatestWakeup = 0;
-bool awakeOrREMHaveNotOccuredBeforeLatestWakeup == 0;
+bool awakeOrREMHaveNotOccuredBeforeLatestWakeup = 0;
+
+bool NREM3 = 0;
+bool NREM2 = 0;
+bool NREM1 = 0;
+bool REM = 0;
+bool awake = 0;
 
 struct sleepStages {
   bool awake = 0;
@@ -151,7 +158,7 @@ void loop()
   displayTime();
   readSlidersEtc();
 
-/*
+  /*
   Serial.print("valSlider1: ");
   Serial.print(valSlider1);
   Serial.println();
@@ -169,26 +176,28 @@ void loop()
   Serial.println();
   delay(100);*/
 
-  if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2)
-  {
+  if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2) {
     showEarliestAlarm();
+    Serial.println("in early alarm if");
   }
-  else if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4)
-  {
+  else if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4) {
     showLatestAlarm();
+    Serial.println("in late alarm if");
   }
-  if (valSlider5 == 1 && (pastValSlider5 != valSlider5)) // if alarm slider is turned on
-  {
+  if (valSlider5 == 1 && (pastValSlider5 != valSlider5)) { // if alarm slider is turned on
     runAccel();
+    Serial.println("in alarm on if");
   }
-  if (valSlider5 == 1) // while alarm is on do
-  {
+  if (valSlider5 == 1) {// while alarm is on do
     runAlarm();
+    Serial.println("in runAlarm if");
   }
-  else if (valSlider5 != 1 && (pastValSlider5 != valSlider5)) // if alarm slider is turned off
-  {
+  else if (valSlider5 != 1 && (pastValSlider5 != valSlider5)) { // if alarm slider is turned off
     endAlarm();
+    Serial.println("in endAlarm if");
   }
+
+  updateSliders();
 
 } //end loop
 
@@ -198,7 +207,22 @@ void displayTime()
 {
   DateTime now = rtc.now();
   int hour = now.hour();
+  Serial.print("hour = ");
+  Serial.print(hour);
+  Serial.println();
   int minute = now.minute();
+  Serial.print("minute = ");
+  Serial.print(minute);
+  Serial.println();
+
+if (hour == 0) { // daylight savings adjustment 1 of 2
+  hour = 11;
+  digit0 = 1;
+  digit1 = 1;
+}
+
+else { // daylight savings adjustment 2 of 2
+  hour = hour - 1;
 
   if (hour < 10)
   {
@@ -235,14 +259,15 @@ void displayTime()
   AM = 1;
   PM = 0;
   }
+} // end else
 
-  Serial.print("displayTime running: ");
-  Serial.print(digit0);
-  Serial.print(digit1);
-  Serial.print(":");
-  Serial.print(digit3);
-  Serial.print(digit4);
-  Serial.println();
+  // Serial.print("displayTime running: ");
+  // Serial.print(digit0);
+  // Serial.print(digit1);
+  // Serial.print(":");
+  // Serial.print(digit3);
+  // Serial.print(digit4);
+  // Serial.println();
 
   if (digit0 == 1)
   {
@@ -268,12 +293,16 @@ void readSlidersEtc()
 
   valSlider1 = analogRead(slider1);
   valSlider1 = map(valSlider1, 0, 4096, 1 , 13);
-
+  // Serial.print("valSider1 = ");
+  // Serial.print(valSlider1);
+  // Serial.println();
 //========= SLIDER2 (earliest minute) ========
 
   valSlider2 = analogRead(slider2);
   valSlider2 = 5*map(valSlider2, 0, 4096, 0, 12);
-
+  // Serial.print("valSider2 = ");
+  // Serial.print(valSlider2);
+  // Serial.println();
 //========= SLIDER3 (latest hour) ========
 
   valSlider3 = analogRead(slider3);
@@ -317,6 +346,7 @@ void readSlidersEtc()
       snooze = 0;
     }
 
+//========= INITIALIZING VARS ========
   earliestAlarmHours = valSlider1;
   earliestAlarmMinutes = valSlider2;
   latestAlarmHours = valSlider3;
@@ -327,8 +357,8 @@ void readSlidersEtc()
 
 } // end readSlidersEtc
 
-void showEarliestAlarm()
-{
+void showEarliestAlarm() {
+
   char counterSec = 0; //use char so it can save until value 255
   do
   {
@@ -369,7 +399,7 @@ void showEarliestAlarm()
     matrix.writeDisplay();
 
     readSlidersEtc();
-    if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4)
+    if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2)
     {
       counterSec = 0;
     }
@@ -437,6 +467,7 @@ void showLatestAlarm()
 
 void updateSliders()
 {
+    Serial.println("updating sliders");
     pastValSlider1 = valSlider1;    //update slider value
     pastValSlider2 = valSlider2;
     pastValSlider3 = valSlider3;
