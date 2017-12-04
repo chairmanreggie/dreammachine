@@ -127,7 +127,7 @@ Ype Brada 2015-04-06
 # define Command_Length 0x06
 # define End_Byte 0xEF
 # define Acknowledge 0x00 //Returns info with command 0x41 [0x01: info, 0x00: no info]
-
+int start = 0;
 void setup ()
 {
  Serial.begin(9600);
@@ -139,13 +139,21 @@ void setup ()
  delay(30); // Pretty long delays between succesive commands needed (not always the same)
 
  // Initialize sound to very low volume. Adapt according used speaker and wanted volume
- execute_CMD(0x30, 0, 1); // Set the volume (0x00~0x30)
+ //execute_CMD(0x30, 0, 1); // Set the volume (0x00~0x30)
 }
 
 
 void loop ()
 {
- if (Serial.available())
+  if (start == 0)
+  {
+    execute_CMD(0x03,0,1);
+    delay(3000);
+    execute_CMD(0x0E,0,0);
+    start = 1;
+    Serial.println("Here");
+  }
+ /*if (Serial.available())
  {
   // Input in the Serial monitor: Command and the two parameters in decimal numbers (NOT HEX)
   // E.g. 3,0,1 (or 3 0 1 or 3;0;1) will play first track on the TF-card
@@ -164,7 +172,7 @@ void loop ()
   // Excecute the entered command and parameters
   execute_CMD(Command, Parameter1, Parameter2);
  }
-
+*/
  if (Serial1.available()>=10) // There is at least 1 returned message (10 bytes each)
  {
   // Read the returned code
@@ -173,12 +181,12 @@ void loop ()
   Returned[k] = Serial1.read();
 
   // Wtite the returned code to the screen
-  /*Serial.print("Returned: 0x"); if (Returned[3] < 16) Serial.print("0"); Serial.print(Returned[3],HEX);
+  Serial.print("Returned: 0x"); if (Returned[3] < 16) Serial.print("0"); Serial.print(Returned[3],HEX);
   Serial.print("("); Serial.print(Returned[3], DEC);
   Serial.print("); Parameter: 0x"); if (Returned[5] < 16) Serial.print("0"); Serial.print(Returned[5],HEX);
   Serial.print("("); Serial1.print(Returned[5], DEC);
   Serial.print("), 0x"); if (Returned[6] < 16) Serial.print("0"); Serial.print(Returned[6],HEX);
-  Serial.print("("); Serial.print(Returned[6], DEC); Serial.println(")");*/
+  Serial.print("("); Serial.print(Returned[6], DEC); Serial.println(")");
  }
 }
 
