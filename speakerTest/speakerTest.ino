@@ -128,6 +128,7 @@ Ype Brada 2015-04-06
 # define End_Byte 0xEF
 # define Acknowledge 0x00 //Returns info with command 0x41 [0x01: info, 0x00: no info]
 int start = 0;
+
 void setup ()
 {
  Serial.begin(9600);
@@ -148,8 +149,8 @@ void loop ()
   if (start == 0)
   {
     execute_CMD(0x03,0,1);
-    delay(3000);
-    execute_CMD(0x0E,0,0);
+  //  delay(6000);
+//    execute_CMD(0x0E,0,0);
     start = 1;
     Serial.println("Here");
   }

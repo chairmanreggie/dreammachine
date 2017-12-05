@@ -17,26 +17,9 @@ Author: Reggie Raye
 // Set to false to display time in 12 hour format, or true to use 24 hour:
 #define TIME_24_HOUR      false
 
-// I2C address of the display.  Stick with the default address of 0x70
-// unless you've changed the address jumpers on the back of the display.
-
-// Create display and DS1307 objects.  These are global variables that
-// can be accessed from both the setup and loop function below.
 Adafruit_7segment clockDisplay = Adafruit_7segment();
 Adafruit_7segment matrix = Adafruit_7segment();
 #define DS1307_ADDRESS 0x68
-
-// Date and time functions using a DS1307 RTC connected via I2C
-//
-// WIRE IT UP!
-//
-// DS1307               SPARK CORE
-//--------------------------------------------------------------------
-// VCC                - Vin (5V only, does not work on 3.3)
-// Serial Clock (SCL) - D1 (needs 2.2k to 10k pull up resistor to Vin)
-// Serial Data  (SDA) - D0 (needs 2.2k to 10k pull up resistor to Vin)
-// Ground             - GND
-//--------------------------------------------------------------------
 
 RTC_DS1307 rtc;
 
@@ -50,7 +33,7 @@ int earliestAlarmMinutes = 0;     //saves slider 2 value in early alarm minutes
 int latestAlarmHours = 0;
 int latestAlarmMinutes = 0;
 
-char sleepQuality=0;
+char sleepQuality = 0;
 
 bool blinkColon = false;
 
@@ -110,6 +93,7 @@ struct sleepStages {
   bool NREM3 = 0;
 };
 sleepStages currentSleepStage;
+
 # define Start_Byte 0x7E
 # define Version_Byte 0xFF
 # define Command_Length 0x06
@@ -120,8 +104,8 @@ sleepStages currentSleepStage;
 
 void setup()
 {
-  pinMode(ampmEarly,INPUT);
-  pinMode(ampmLate,INPUT);
+  pinMode(ampmEarly, INPUT);
+  pinMode(ampmLate, INPUT);
   Serial.begin(9600);
   matrix.begin(0x70);
   matrix.setBrightness(15);
@@ -162,48 +146,44 @@ void setup()
 
 // ======================== LOOP ==============================
 
-void loop()
-{
-  displayTime();
-  readSlidersEtc();
+void loop() {
 
-  /*
-  Serial.print("valSlider1: ");
-  Serial.print(valSlider1);
-  Serial.println();
-  Serial.print("valSlider2: ");
-  Serial.print(valSlider2);
-  Serial.println();
-  Serial.print("valSlider3: ");
-  Serial.print(valSlider3);
-  Serial.println();
-  Serial.print("valSlider4: ");
-  Serial.print(valSlider4);
-  Serial.println();
-  Serial.print("valSlider5: ");
-  Serial.print(valSlider5);
-  Serial.println();
-  delay(100);*/
+  displayTime();
+  //readSlidersEtc();
+  
+  // Serial.print("valSlider1: ");
+  // Serial.print(valSlider1);
+  // Serial.println();
+  // Serial.print("valSlider2: ");
+  // Serial.print(valSlider2);
+  // Serial.println();
+  // Serial.print("valSlider3: ");
+  // Serial.print(valSlider3);
+  // Serial.println();
+  // Serial.print("valSlider4: ");
+  // Serial.print(valSlider4);
+  // Serial.println();
+  // Serial.print("valSlider5: ");
+  // Serial.print(valSlider5);
+  // Serial.println();
+  // delay(100);
 
   if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2) {
     showEarliestAlarm();
-    Serial.println("in early alarm if");
+    Serial.println("running early alarm if");
   }
   else if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4) {
     showLatestAlarm();
-    Serial.println("in late alarm if");
+    Serial.println("running late alarm if");
   }
-  if (valSlider5 == 1 && (pastValSlider5 != valSlider5)) { // if alarm slider is turned on
-    runAccel();
-    Serial.println("in alarm on if");
-  }
-  if (valSlider5 == 1) {// while alarm is on do
+  if (valSlider5 == 0) { // while alarm is on do
+    Serial.println("alarm is set to " + valSlider5);
     runAlarm();
-    Serial.println("in runAlarm if");
+//    Serial.println("running runAlarm if");
   }
   else if (valSlider5 != 1 && (pastValSlider5 != valSlider5)) { // if alarm slider is turned off
     endAlarm();
-    Serial.println("in endAlarm if");
+//    Serial.println("running endAlarm if");
   }
 
   updateSliders();
@@ -216,13 +196,10 @@ void displayTime()
 {
   DateTime now = rtc.now();
   int hour = now.hour();
-  Serial.print("hour = ");
-  Serial.print(hour);
-  Serial.println();
+  Serial.println("hour = " + hour);
+
   int minute = now.minute();
-  Serial.print("minute = ");
-  Serial.print(minute);
-  Serial.println();
+  Serial.print("minute = " + minute);
 
 if (hour == 0) { // daylight savings adjustment 1 of 2
   hour = 11;
@@ -296,8 +273,9 @@ else { // daylight savings adjustment 2 of 2
 
 } //end displayTime
 
-void readSlidersEtc()
-{
+
+void readSlidersEtc() {
+
 //========= SLIDER1 (earliest hour) ========
 
   valSlider1 = analogRead(slider1);
@@ -305,6 +283,7 @@ void readSlidersEtc()
   // Serial.print("valSider1 = ");
   // Serial.print(valSlider1);
   // Serial.println();
+
 //========= SLIDER2 (earliest minute) ========
 
   valSlider2 = analogRead(slider2);
@@ -312,6 +291,7 @@ void readSlidersEtc()
   // Serial.print("valSider2 = ");
   // Serial.print(valSlider2);
   // Serial.println();
+
 //========= SLIDER3 (latest hour) ========
 
   valSlider3 = analogRead(slider3);
@@ -331,18 +311,22 @@ void readSlidersEtc()
   if (digitalRead(ampmEarly) == HIGH)
   {
     AMorPMearly = 1; // if 1, then am
+  //  Serial.println("AMorPMearly = " + AMorPMearly);
   }
   else if (digitalRead(ampmEarly) == LOW)
   {
     AMorPMearly = 0; // if 0, then pm
+  //  Serial.println("AMorPMearly = " + AMorPMearly);
   }
   if (digitalRead(ampmLate) == HIGH)
   {
     AMorPMlate = 1;
+//    Serial.println("AMorPMlate = " + AMorPMlate);
   }
   else if (digitalRead(ampmLate) == LOW)
   {
     AMorPMlate = 0;
+//    Serial.println("AMorPMlate = " + AMorPMlate);
   }
 
 //========= SNOOZE BUTTON ========
@@ -356,7 +340,7 @@ void readSlidersEtc()
       snooze = 0;
     }
 
-//========= INITIALIZING VARS ========
+//========= POPULATING VARS ========
   earliestAlarmHours = valSlider1;
   earliestAlarmMinutes = valSlider2;
   latestAlarmHours = valSlider3;
@@ -367,13 +351,12 @@ void readSlidersEtc()
 
 } // end readSlidersEtc
 
+
 void showEarliestAlarm() {
 
   char counterSec = 0; //use char so it can save until value 255
   do
   {
-    if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2)
-    {
     if (valSlider1 < 10)
     {
      digit0 = 0;
@@ -409,7 +392,6 @@ void showEarliestAlarm() {
     matrix.writeDigitNum(3,digit3);
     matrix.writeDigitNum(4,digit4);
     matrix.writeDisplay();
-    }
     readSlidersEtc();
     if (pastValSlider1 != valSlider1 || pastValSlider2 != valSlider2)
     {
@@ -423,13 +405,12 @@ void showEarliestAlarm() {
 
 } // end showEarliestAlarm
 
-void showLatestAlarm()
-{
+
+void showLatestAlarm() {
+
   char counterSec = 0; //use char so it can save until value 255
   do
   {
-    if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4)
-    {
     if (valSlider3 < 10)
     {
      digit0 = 0;
@@ -465,7 +446,6 @@ void showLatestAlarm()
     matrix.writeDigitNum(3,digit3);
     matrix.writeDigitNum(4,digit4);
     matrix.writeDisplay();
-    }
     readSlidersEtc();
     if (pastValSlider3 != valSlider3 || pastValSlider4 != valSlider4)
     {
@@ -479,18 +459,21 @@ void showLatestAlarm()
 
 } // end showLatestAlarm
 
-void updateSliders()
-{
+
+void updateSliders() {
     //Serial.println("updating sliders");
-    pastValSlider1 = valSlider1;    //update slider value
+    pastValSlider1 = valSlider1;
     pastValSlider2 = valSlider2;
     pastValSlider3 = valSlider3;
     pastValSlider4 = valSlider4;
     pastValSlider5 = valSlider5;
 }
 
-void runAlarm()
-{
+
+void runAlarm() {
+
+//  Serial.println("running runAlarm ");
+
   currentTime = (digit0 + digit1)*100 + digit3 + digit4;
   detOptimalWakeTime();
   if (snooze==0 && valSlider5==1 && currentTime==optimalWakeTime)
@@ -499,7 +482,7 @@ void runAlarm()
   }
   else if (snooze==1 && valSlider5==1)
   {
-    optimalWakeTime = optimalWakeTime + 10;
+    optimalWakeTime = optimalWakeTime + 1;
     snooze = 0;
   }
 
@@ -515,127 +498,28 @@ void runAlarm()
     updateSliders();
 } // end runAlarm
 
-void endAlarm()
-{
-//turn off speaker
-//turn off runAccel
+
+void endAlarm() {
   execute_CMD(0x0E,0,0);
-  optimalWakeTime = 0;
-  sleepDuration = 0;
-  sleepCycles = 0;
   updateSliders();
 }
 
-void detOptimalWakeTime()
-{
-  detSleepStage();
-  if (currentSleepStage.awake == 1 || currentSleepStage.REM == 1)
-  {
+
+void detOptimalWakeTime() {
     optimalWakeTime = earliestWakeupTime;
-  }
-  else if (awakeOrREMWillLikelyOccurBeforeLatestWakeup == 1) //the idea here is to postpone wakeup if it seems probable that REM or awake will occur prior to the latest wakeup
-  {
-    if (currentSleepStage.awake == 1 || currentSleepStage.REM == 1) //not sure if these parameters are appropriate, given the purpose of this 'else if'
-    {
-      optimalWakeTime = currentTime;
-    }
-  }
-else if (awakeOrREMHaveNotOccuredBeforeLatestWakeup == 1)
-  {
-    optimalWakeTime = latestWakeupTime;
-  }
-
-Serial.print("optimalWakeTime: ");
-Serial.print(optimalWakeTime);
-Serial.println();
-
-} //end detOptimalWakeTime
-
-void detSleepStage()
-{
-  // get avgAccelMovement from accelerometer.ino (not there now, though that is where it likely belongs)
-  // avgAccelMovement might be defined as the weighted average of the absolute values of X (important), Y (important), and Z (less important) accelerometer readings
-  if (avgAccelMovement >= 0 && avgAccelMovement <= 1)
-  {
-    NREM3 = 1;
-    NREM2 = 0;
-    NREM1 = 0;
-    REM = 0;
-    awake = 0;
-  }
-  else if (avgAccelMovement > 1 && avgAccelMovement <= 2)
-  {
-    NREM3 = 0;
-    NREM2 = 1;
-    NREM1 = 0;
-    REM = 0;
-    awake = 0;
-  }
-  else if (avgAccelMovement > 2 && avgAccelMovement <= 3)
-  {
-    NREM3 = 0;
-    NREM2 = 0;
-    NREM1 = 1;
-    REM = 0;
-    awake = 0;
-  }
-  else if (avgAccelMovement > 3 && avgAccelMovement <= 4)
-  {
-    NREM3 = 0;
-    NREM2 = 0;
-    NREM1 = 0;
-    REM = 1;
-    awake = 0;
-  }
-  else if (avgAccelMovement > 4 && avgAccelMovement <= 5)
-  {
-    NREM3 = 0;
-    NREM2 = 0;
-    NREM1 = 0;
-    REM = 0;
-    awake = 1;
-  }
-} // end detSleepStage
-
-void runAccel()
-{
-  //should start accelerometer sensor readings
-  //read sleepDuration and sleepCycles here
-  if (sleepDuration<=745 || sleepCycles==1 || sleepCycles==2)
-  {
-    sleepQuality = 3;
-  }
-  else if (sleepDuration>=745 && (sleepCycles == 3 || sleepCycles == 4))
-  {
-    sleepQuality = 2;
-  }
-  else if (sleepDuration>=755 && sleepCycles >= 5)
-  {
-    sleepQuality = 1;
-  }
-} //end runAccel
-
-void selectSong()
-{
-  switch(sleepQuality)        // sleep quality 1 = above average, 2 = average, 3 = below average
-  {
-    case 1:
-    AAvgSong++;            // plays next song, if AAvgSong= 0+1=1 then plays song 1
-    playAAvgSong();
-    break;
-    case 2:
-    avgSong++;
-    playAvgSong();
-    break;
-    case 3:
-    BAvgSong++;
-    playBAvgSong();
-    break;
-  }
 }
 
-void playAAvgSong()
-{
+
+void selectSong() {
+    playAAvgSong();
+    AAvgSong++;
+}
+
+
+void playAAvgSong() {
+
+  Serial.print("running runAlarm ");
+  Serial.println();
   switch(AAvgSong)
   {
     case 1:
@@ -650,105 +534,12 @@ void playAAvgSong()
     case 4:
     execute_CMD(0x03,0,4);
     break;
-    case 5:
-    execute_CMD(0x03,0,5);
-    break;
-    case 6:
-    execute_CMD(0x03,0,6);
-    break;
-    case 7:
-    execute_CMD(0x03,0,7);
-    break;
-    case 8:
-    execute_CMD(0x03,0,8);
-    break;
-    case 9:
-    execute_CMD(0x03,0,9);
-    break;
-    case 10:
-    execute_CMD(0x03,0,10);
     AAvgSong = 0;
     break;
   }
-}
+} // end playAAvgSong
 
-void playAvgSong()
-{
-  switch(avgSong)
-  {
-    case 1:
-    execute_CMD(0x03,0,11);
-    break;
-    case 2:
-    execute_CMD(0x03,0,12);
-    break;
-    case 3:
-    execute_CMD(0x03,0,13);
-    break;
-    case 4:
-    execute_CMD(0x03,0,14);
-    break;
-    case 5:
-    execute_CMD(0x03,0,15);
-    break;
-    case 6:
-    execute_CMD(0x03,0,16);
-    break;
-    case 7:
-    execute_CMD(0x03,0,17);
-    break;
-    case 8:
-    execute_CMD(0x03,0,18);
-    break;
-    case 9:
-    execute_CMD(0x03,0,19);
-    break;
-    case 10:
-    execute_CMD(0x03,0,20);
-    avgSong = 0;
-    break;
-  }
-}
-
-void playBAvgSong()
-{
-  switch(BAvgSong)
-  {
-    case 1:
-    execute_CMD(0x03,0,21);
-    break;
-    case 2:
-    execute_CMD(0x03,0,22);
-    break;
-    case 3:
-    execute_CMD(0x03,0,23);
-    break;
-    case 4:
-    execute_CMD(0x03,0,24);
-    break;
-    case 5:
-    execute_CMD(0x03,0,25);
-    break;
-    case 6:
-    execute_CMD(0x03,0,26);
-    break;
-    case 7:
-    execute_CMD(0x03,0,27);
-    break;
-    case 8:
-    execute_CMD(0x03,0,28);
-    break;
-    case 9:
-    execute_CMD(0x03,0,29);
-    break;
-    case 10:
-    execute_CMD(0x03,0,30);
-    BAvgSong = 0;
-    break;
-  }
-} // end playBAvgSong
-void execute_CMD(byte CMD, byte Par1, byte Par2) // Excecute the command and parameters
-{
+void execute_CMD(byte CMD, byte Par1, byte Par2) { // Excecute the command and parameters
  // Calculate the checksum (2 bytes)
  int16_t checksum = -(Version_Byte + Command_Length + CMD + Acknowledge + Par1 + Par2);
 
@@ -760,4 +551,4 @@ void execute_CMD(byte CMD, byte Par1, byte Par2) // Excecute the command and par
  {
   Serial1.write( Command_line[k]);
  }
-}
+} // end execute_CMD
